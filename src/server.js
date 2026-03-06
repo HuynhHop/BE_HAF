@@ -23,7 +23,8 @@ const io = initSocket(server);
 
 // Config CORS cho cả Express và Socket.IO
 const corsOptions = {
-  origin: "http://localhost:3000",
+  // origin: "http://localhost:3000",
+  origin: "https://rococo-muffin-811700.netlify.app",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   credentials: true
 };
