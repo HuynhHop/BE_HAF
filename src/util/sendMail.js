@@ -10,15 +10,17 @@ const sendMail = async (action, { email, html }) => {
         pass: process.env.EMAIL_APP_PASSWORD,
       },
     });
+
     const info = await transporter.sendMail({
-      from: '"Speaking English" <no-reply@speakingen.gmail.com>', // sender address
-      to: email, // list of receivers
-      subject: action, // Subject line
-      text: "Hello world", // plain text body
-      html: html, // html body
+      from: `"Booking System" <${process.env.EMAIL_NAME}>`,
+      to: email,
+      subject: action,
+      html: html,
     });
+
     return info;
   } catch (error) {
+    console.error("Send mail error:", error);
     throw new Error(error);
   }
 };

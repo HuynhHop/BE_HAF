@@ -262,6 +262,7 @@
 const slugify = require("slugify");
 const Hotel = require("../models/Hotel");
 const NodeCache = require("node-cache");
+const { handlePriceDrop } = require("../util/priceAlertService");
 
 const cache = new NodeCache({ stdTTL: 30 });
 
@@ -343,7 +344,7 @@ class HotelController {
       }
 
       const hotels = await Hotel.find()
-        .select("name pricePerNight starRating province images address slug")
+        .select("name pricePerNight starRating province images address slug amenities")
         .skip((page - 1) * limit)
         .limit(limit)
         .lean();
@@ -434,30 +435,117 @@ class HotelController {
 
   async updateHotel(req, res) {
     try {
-      const { id } = req.params;
+      const hotelId = req.params.id;
 
-      const updateData = { ...req.body };
-
-      if (updateData.name) {
-        updateData.slug = slugify(updateData.name, {
-          lower: true,
-          strict: true,
+      // 1. Lấy hotel cũ
+      const hotel = await Hotel.findById(hotelId);
+      if (!hotel) {
+        return res.status(404).json({
+          success: false,
+          message: "Hotel not found",
         });
       }
 
-      if (req.files?.length) {
-        updateData.images = req.files.map((file) => file.path);
+      const oldPrice = hotel.pricePerNight;
+
+      // 2. Clone data từ request
+      const updateData = { ...req.body };
+
+      // =========================
+      // ✅ 3. Parse amenities
+      // =========================
+      if (updateData.amenities) {
+        try {
+          updateData.amenities =
+            typeof updateData.amenities === "string"
+              ? JSON.parse(updateData.amenities)
+              : updateData.amenities;
+        } catch (err) {
+          return res.status(400).json({
+            success: false,
+            message: "Amenities format is invalid",
+          });
+        }
       }
 
-      const updatedHotel = await Hotel.findByIdAndUpdate(id, updateData, {
-        new: true,
+      // =========================
+      // ✅ 4. Parse JSON fields
+      // =========================
+      if (updateData.policies && typeof updateData.policies === "string") {
+        updateData.policies = JSON.parse(updateData.policies);
+      }
+
+      if (updateData.contact && typeof updateData.contact === "string") {
+        updateData.contact = JSON.parse(updateData.contact);
+      }
+
+      if (updateData.location && typeof updateData.location === "string") {
+        updateData.location = JSON.parse(updateData.location);
+      }
+
+      // =========================
+      // ✅ 5. Xử lý images (QUAN TRỌNG NHẤT)
+      // =========================
+
+      let existingImages = [];
+
+      // lấy ảnh cũ từ FE
+      if (req.body.existingImages) {
+        try {
+          existingImages = JSON.parse(req.body.existingImages);
+        } catch (err) {
+          return res.status(400).json({
+            success: false,
+            message: "existingImages format is invalid",
+          });
+        }
+      }
+
+      // ảnh upload mới
+      const newImages =
+        req.files && req.files.length > 0
+          ? req.files.map((file) => file.path)
+          : [];
+
+      // merge ảnh
+      if (existingImages.length > 0 || newImages.length > 0) {
+        updateData.images = [...existingImages, ...newImages];
+      }
+
+      // =========================
+      // ✅ 6. Lưu giá cũ
+      // =========================
+      updateData.oldPricePerNight = oldPrice;
+
+      // =========================
+      // 7. Update DB
+      // =========================
+      const updatedHotel = await Hotel.findByIdAndUpdate(
+        hotelId,
+        updateData,
+        { new: true }
+      );
+
+      // =========================
+      // 8. Trigger price alert (async)
+      // =========================
+      handlePriceDrop(
+        updatedHotel,
+        oldPrice,
+        updatedHotel.pricePerNight
+      );
+
+      return res.status(200).json({
+        success: true,
+        data: updatedHotel,
       });
 
-      cache.flushAll();
-
-      res.json({ success: true, data: updatedHotel });
-    } catch (err) {
-      res.status(500).json({ success: false, message: err.message });
+    } catch (error) {
+      console.error("Update error:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Update failed",
+      });
     }
   }
 

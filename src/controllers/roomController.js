@@ -58,7 +58,7 @@ class RoomController {
       }
 
       const rooms = await Room.find({ hotel: hotelId })
-        .select("name price capacity")
+        .select("name price capacity amenities images quantity policies area view serviceFee cashback")
         .lean();
 
       cache.set(cacheKey, rooms);

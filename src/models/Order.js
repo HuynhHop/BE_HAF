@@ -42,6 +42,8 @@ const orderSchema = new mongoose.Schema(
     },
     note: { type: String }, // Ghi chú của khách hàng
     imageRoom: { type: String }, // Hình ảnh phòng đã đặt
+    checkIn: { type: Date },
+    checkOut: { type: Date },
   },
   { timestamps: true }
 );

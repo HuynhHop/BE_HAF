@@ -52,7 +52,9 @@ class OrderController {
         guestInfo,
         note,
         imageRoom,
-        cashUsed = 0 // Thêm trường cashUsed, mặc định là 0
+        cashUsed = 0, // Thêm trường cashUsed, mặc định là 0
+        checkIn,
+        checkOut
       } = req.body;
 
       if (serviceType === "Hotel") {
@@ -103,7 +105,9 @@ class OrderController {
         status: "Paid",
         note: note || "",
         imageRoom: imageRoom || "",
-        cashUsed // Lưu số tiền đã sử dụng từ Cash vào order
+        cashUsed, // Lưu số tiền đã sử dụng từ Cash vào order
+        checkIn,
+        checkOut
       });
       await newOrder.save();
 
