@@ -29,6 +29,7 @@ const handlePriceDrop = async (hotel, oldPrice, newPrice) => {
     const userMap = new Map();
     users.forEach(u => userMap.set(u._id.toString(), u));
 
+    const start = Date.now();
     // 4. Gửi email theo threshold từng user
     let sentCount = 0;
 
@@ -113,6 +114,13 @@ const handlePriceDrop = async (hotel, oldPrice, newPrice) => {
     }
 
     console.log(`✅ Sent ${sentCount} price alert emails`);
+    // đoạn gửi mail
+
+    const end = Date.now();
+
+    const duration = end - start;
+
+    console.log(`✅ Sent ${sentCount} emails in ${duration} ms`);
   } catch (error) {
     console.error("❌ Price Alert Error:", error);
   }

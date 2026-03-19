@@ -25,6 +25,12 @@ const sendMail = async (action, { email, html }) => {
   }
 };
 
+// const sendMail = async (action, { email, html }) => {
+//   await new Promise(resolve => setTimeout(resolve, 200));
+//   console.log("📧 SEND TO:", email);
+//   return true;
+// };
+
 const sendMailRegister = async ({ email, html }) => {
   try {
     const transporter = nodemailer.createTransport({
