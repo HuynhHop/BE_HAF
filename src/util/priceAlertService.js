@@ -96,7 +96,7 @@ const handlePriceDrop = async (hotel, oldPrice, newPrice) => {
     <!-- FOOTER -->
     <tr>
       <td style="background:#ecf0f1; padding:15px; text-align:center; font-size:12px; color:#777;">
-        <p style="margin:5px 0;">© 2026 Speaking English Travel</p>
+        <p style="margin:5px 0;">© 2026 Travel Booking Platform</p>
         <p style="margin:5px 0;">You're receiving this because you favorited this hotel.</p>
         <p style="margin:5px 0;">
           <a href="#" style="color:#3498db;">Unsubscribe</a>

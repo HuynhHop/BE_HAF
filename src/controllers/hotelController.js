@@ -344,7 +344,7 @@ class HotelController {
       }
 
       const hotels = await Hotel.find()
-        .select("name pricePerNight starRating province images address slug amenities")
+        .select("name pricePerNight oldPricePerNight starRating province images address slug amenities")
         .skip((page - 1) * limit)
         .limit(limit)
         .lean();
@@ -397,7 +397,7 @@ class HotelController {
       const hotels = await Hotel.find({
         province: new RegExp(province, "i"),
       })
-        .select("name pricePerNight province images")
+        .select("name pricePerNight oldPricePerNight province images")
         .lean();
 
       cache.set(cacheKey, hotels);
@@ -529,11 +529,11 @@ class HotelController {
       // =========================
       // 8. Trigger price alert (async)
       // =========================
-      handlePriceDrop(
-        updatedHotel,
-        oldPrice,
-        updatedHotel.pricePerNight
-      );
+      // handlePriceDrop(
+      //   updatedHotel,
+      //   oldPrice,
+      //   updatedHotel.pricePerNight
+      // );
 
       return res.status(200).json({
         success: true,

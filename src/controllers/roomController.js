@@ -1,6 +1,7 @@
 const Room = require("../models/Room");
 const NodeCache = require("node-cache");
 const updateHotelMinPrice = require("../util/updateHotelMinPrice");
+const { handlePriceDrop } = require("../util/priceAlertService");
 
 const cache = new NodeCache({ stdTTL: 30 });
 
@@ -15,9 +16,10 @@ class RoomController {
       }
 
       const rooms = await Room.find()
-        .select("name price capacity hotel")
+        .populate("hotel", "name")
+        .select("name price capacity hotel beds people amenities")
         .limit(20)
-        .lean(); // ❌ bỏ populate
+        .lean();
 
       cache.set(cacheKey, rooms);
 
@@ -85,7 +87,11 @@ class RoomController {
 
       const newRoom = await Room.create(data);
 
-      await updateHotelMinPrice(newRoom.hotel);
+      const result = await updateHotelMinPrice(newRoom.hotel);
+
+      if (result) {
+        handlePriceDrop(result.hotel, result.oldPrice, result.newPrice);
+      }
 
       cache.flushAll();
 
@@ -97,18 +103,49 @@ class RoomController {
 
   async updateRoom(req, res) {
     try {
+      let data = req.body;
+
+      // ✅ Parse lại giống createRoom
+      if (typeof data.policies === "string") {
+        data.policies = JSON.parse(data.policies);
+      }
+
+      if (typeof data.amenities === "string") {
+        data.amenities = JSON.parse(data.amenities);
+      }
+
+      // ✅ Convert number
+      if (data.price) data.price = Number(data.price);
+      if (data.quantity) data.quantity = Number(data.quantity);
+
+      // 1. Lấy room cũ
+      const oldRoom = await Room.findById(req.params.id);
+      if (!oldRoom) {
+        return res.status(404).json({
+          success: false,
+          message: "Room not found",
+        });
+      }
+
+      // 2. Update
       const updatedRoom = await Room.findByIdAndUpdate(
         req.params.id,
-        req.body,
+        data,
         { new: true }
       );
 
-      await updateHotelMinPrice(updatedRoom.hotel);
+      // 3. Update hotel price
+      const result = await updateHotelMinPrice(updatedRoom.hotel);
+
+      if (result) {
+        handlePriceDrop(result.hotel, result.oldPrice, result.newPrice);
+      }
 
       cache.flushAll();
 
       res.json({ success: true, data: updatedRoom });
     } catch (err) {
+      console.error(err); // 👈 thêm dòng này để debug
       res.status(400).json({ success: false, message: err.message });
     }
   }
@@ -117,7 +154,11 @@ class RoomController {
     try {
       const room = await Room.findByIdAndDelete(req.params.id);
 
-      await updateHotelMinPrice(room.hotel);
+      const result = await updateHotelMinPrice(room.hotel);
+
+      if (result) {
+        handlePriceDrop(result.hotel, result.oldPrice, result.newPrice);
+      }
 
       cache.flushAll();
 
